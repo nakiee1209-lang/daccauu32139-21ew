@@ -1,0 +1,1256 @@
+getgenv().Team = "Marines"
+repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game.Players and game.Players.LocalPlayer
+task.wait(3)
+
+local Players       = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local TweenService  = game:GetService("TweenService")
+local RunService    = game:GetService("RunService")
+local rs            = game:GetService("ReplicatedStorage")
+local vu            = game:GetService("VirtualUser")
+local lp            = Players.LocalPlayer
+local playerName    = lp.Name
+
+-- Team Selection
+if not lp.Team then
+    rs.Remotes.CommF_:InvokeServer("SetTeam", getgenv().Team or "Marines")
+end
+repeat task.wait() until lp.Team
+
+-- Anti-AFK
+lp.Idled:connect(function()
+    vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+-- Auto Buso Haki
+task.spawn(function()
+    while true do
+        pcall(function()
+            local char = lp.Character
+            if char and not char:FindFirstChild("HasBuso") then
+                rs.Remotes.CommF_:InvokeServer("Buso")
+            end
+        end)
+        task.wait(3)
+    end
+end)
+
+-- Noclip Loop
+task.spawn(function()
+    RunService.Stepped:Connect(function()
+        pcall(function()
+            local char = lp.Character
+            if not char then return end
+            for _, v in ipairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+        end)
+    end)
+end)
+
+-- ============================================================
+--  UI DRAG & STATUS PANEL
+-- ============================================================
+pcall(function()
+    if game.CoreGui:FindFirstChild("AutoDracoStatus") then
+        game.CoreGui.AutoDracoStatus:Destroy()
+    end
+end)
+
+local StatusGui = Instance.new("ScreenGui")
+StatusGui.Name         = "AutoDracoStatus"
+StatusGui.Parent       = game.CoreGui
+StatusGui.ResetOnSpawn = false
+StatusGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local Wrapper = Instance.new("Frame")
+Wrapper.Name                   = "Wrapper"
+Wrapper.Parent                 = StatusGui
+Wrapper.BackgroundTransparency = 1
+Wrapper.Size                   = UDim2.new(0, 390, 0, 120)
+Wrapper.Position               = UDim2.new(0.5, -195, 0, 12)
+Wrapper.BorderSizePixel        = 0
+
+local Panel = Instance.new("Frame")
+Panel.Name                   = "Panel"
+Panel.Parent                 = Wrapper
+Panel.Size                   = UDim2.new(1, 0, 1, 0)
+Panel.BackgroundColor3       = Color3.fromRGB(8, 8, 14)
+Panel.BackgroundTransparency = 0.18
+Panel.BorderSizePixel        = 0
+Instance.new("UICorner", Panel).CornerRadius = UDim.new(0, 14)
+
+pcall(function()
+    local blur = Instance.new("UIBlur")
+    blur.BlurType    = Enum.BlurType.Gaussian
+    blur.Size        = 16
+    blur.Parent      = Panel
+end)
+
+local BorderStroke = Instance.new("UIStroke", Panel)
+BorderStroke.Color       = Color3.fromRGB(139, 92, 246)
+BorderStroke.Thickness   = 1.5
+BorderStroke.Transparency = 0.25
+
+local Header = Instance.new("Frame")
+Header.Name                   = "Header"
+Header.Parent                 = Panel
+Header.Size                   = UDim2.new(1, 0, 0, 30)
+Header.BackgroundColor3       = Color3.fromRGB(15, 10, 25)
+Header.BackgroundTransparency = 0.35
+Header.BorderSizePixel        = 0
+do
+    local c = Instance.new("UICorner", Header)
+    c.CornerRadius = UDim.new(0, 14)
+    local cover = Instance.new("Frame", Header)
+    cover.Size = UDim2.new(1, 0, 0.5, 0)
+    cover.Position = UDim2.new(0, 0, 0.5, 0)
+    cover.BackgroundColor3 = Color3.fromRGB(15, 10, 25)
+    cover.BackgroundTransparency = 0.35
+    cover.BorderSizePixel = 0
+end
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent               = Header
+TitleLabel.Size                 = UDim2.new(0, 160, 1, 0)
+TitleLabel.Position             = UDim2.new(0, 14, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text                 = "DRACO  FLOW"
+TitleLabel.Font                 = Enum.Font.GothamBold
+TitleLabel.TextSize             = 12
+TitleLabel.TextColor3           = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextXAlignment       = Enum.TextXAlignment.Left
+
+local VerLabel = Instance.new("TextLabel")
+VerLabel.Parent               = Header
+VerLabel.Size                 = UDim2.new(0, 80, 0, 16)
+VerLabel.Position             = UDim2.new(0, 158, 0.5, -8)
+VerLabel.BackgroundColor3     = Color3.fromRGB(60, 50, 100)
+VerLabel.BackgroundTransparency = 0.3
+VerLabel.Text                 = "v4.0 STANDALONE"
+VerLabel.Font                 = Enum.Font.Gotham
+VerLabel.TextSize             = 9
+VerLabel.TextColor3           = Color3.fromRGB(180, 160, 255)
+VerLabel.BorderSizePixel      = 0
+Instance.new("UICorner", VerLabel).CornerRadius = UDim.new(1, 0)
+
+local PlayerPill = Instance.new("Frame")
+PlayerPill.Parent               = Header
+PlayerPill.Size                 = UDim2.new(0, 130, 0, 18)
+PlayerPill.Position             = UDim2.new(1, -144, 0.5, -9)
+PlayerPill.BackgroundColor3     = Color3.fromRGB(30, 25, 55)
+PlayerPill.BackgroundTransparency = 0.3
+PlayerPill.BorderSizePixel      = 0
+Instance.new("UICorner", PlayerPill).CornerRadius = UDim.new(1, 0)
+
+local PlayerLabel = Instance.new("TextLabel")
+PlayerLabel.Parent               = PlayerPill
+PlayerLabel.Size                 = UDim2.new(1, -8, 1, 0)
+PlayerLabel.Position             = UDim2.new(0, 4, 0, 0)
+PlayerLabel.BackgroundTransparency = 1
+PlayerLabel.Text                 = playerName
+PlayerLabel.Font                 = Enum.Font.Gotham
+PlayerLabel.TextSize             = 10
+PlayerLabel.TextColor3           = Color3.fromRGB(200, 185, 255)
+PlayerLabel.TextXAlignment       = Enum.TextXAlignment.Center
+PlayerLabel.TextTruncate         = Enum.TextTruncate.AtEnd
+
+local Content = Instance.new("Frame")
+Content.Name                   = "Content"
+Content.Parent                 = Panel
+Content.Size                   = UDim2.new(1, 0, 0, 76)
+Content.Position               = UDim2.new(0, 0, 0, 32)
+Content.BackgroundTransparency = 1
+Content.BorderSizePixel        = 0
+
+local ImgFrame = Instance.new("Frame")
+ImgFrame.Parent               = Content
+ImgFrame.Size                 = UDim2.new(0, 60, 0, 60)
+ImgFrame.Position             = UDim2.new(0, 14, 0.5, -30)
+ImgFrame.BackgroundColor3     = Color3.fromRGB(20, 14, 35)
+ImgFrame.BackgroundTransparency = 0.45
+ImgFrame.BorderSizePixel      = 0
+Instance.new("UICorner", ImgFrame).CornerRadius = UDim.new(0, 10)
+
+local ImgStroke = Instance.new("UIStroke", ImgFrame)
+ImgStroke.Color       = Color3.fromRGB(139, 92, 246)
+ImgStroke.Thickness   = 1
+ImgStroke.Transparency = 0.5
+
+local ItemImage = Instance.new("ImageLabel")
+ItemImage.Parent               = ImgFrame
+ItemImage.Size                 = UDim2.new(1, -8, 1, -8)
+ItemImage.Position             = UDim2.new(0, 4, 0, 4)
+ItemImage.BackgroundTransparency = 1
+ItemImage.ScaleType            = Enum.ScaleType.Fit
+ItemImage.Image                = ""
+
+local InfoFrame = Instance.new("Frame")
+InfoFrame.Parent               = Content
+InfoFrame.Size                 = UDim2.new(1, -90, 0, 60)
+InfoFrame.Position             = UDim2.new(0, 84, 0.5, -30)
+InfoFrame.BackgroundTransparency = 1
+InfoFrame.BorderSizePixel      = 0
+
+local StateLabel = Instance.new("TextLabel")
+StateLabel.Parent               = InfoFrame
+StateLabel.Size                 = UDim2.new(1, 0, 0, 26)
+StateLabel.Position             = UDim2.new(0, 0, 0, 6)
+StateLabel.BackgroundTransparency = 1
+StateLabel.Text                 = "INITIALIZING..."
+StateLabel.Font                 = Enum.Font.GothamBold
+StateLabel.TextSize             = 15
+StateLabel.TextColor3           = Color3.fromRGB(245, 245, 255)
+StateLabel.TextXAlignment       = Enum.TextXAlignment.Left
+StateLabel.TextTruncate         = Enum.TextTruncate.AtEnd
+
+local ExtraLabel = Instance.new("TextLabel")
+ExtraLabel.Parent               = InfoFrame
+ExtraLabel.Size                 = UDim2.new(1, 0, 0, 28)
+ExtraLabel.Position             = UDim2.new(0, 0, 0, 32)
+ExtraLabel.BackgroundTransparency = 1
+ExtraLabel.Text                 = ""
+ExtraLabel.Font                 = Enum.Font.Gotham
+ExtraLabel.TextSize             = 11
+ExtraLabel.TextColor3           = Color3.fromRGB(160, 150, 200)
+ExtraLabel.TextXAlignment       = Enum.TextXAlignment.Left
+ExtraLabel.TextWrapped          = true
+
+local AccentTrack = Instance.new("Frame")
+AccentTrack.Parent               = Panel
+AccentTrack.Size                 = UDim2.new(1, -28, 0, 3)
+AccentTrack.Position             = UDim2.new(0, 14, 1, -9)
+AccentTrack.BackgroundColor3     = Color3.fromRGB(30, 20, 50)
+AccentTrack.BackgroundTransparency = 0.3
+AccentTrack.BorderSizePixel      = 0
+Instance.new("UICorner", AccentTrack).CornerRadius = UDim.new(1, 0)
+
+local AccentBar = Instance.new("Frame")
+AccentBar.Parent               = AccentTrack
+AccentBar.Size                 = UDim2.new(0.6, 0, 1, 0)
+AccentBar.BackgroundColor3     = Color3.fromRGB(139, 92, 246)
+AccentBar.BorderSizePixel      = 0
+Instance.new("UICorner", AccentBar).CornerRadius = UDim.new(1, 0)
+
+local stateColors = {
+    BUY_TALON             = Color3.fromRGB(99, 182, 241),
+    FARM_MASTERY          = Color3.fromRGB(220, 50, 50),
+    FARM_DOJOTRAINER      = Color3.fromRGB(249, 115, 22),
+    DOJO_WHITE            = Color3.fromRGB(245, 245, 245),
+    DOJO_PURPLE           = Color3.fromRGB(168, 85, 247),
+    DOJO_YELLOW           = Color3.fromRGB(234, 179, 8),
+    DOJO_GREEN            = Color3.fromRGB(34, 197, 94),
+    DOJO_RED              = Color3.fromRGB(239, 68, 68),
+    DOJO_BLACK            = Color3.fromRGB(60, 60, 60),
+}
+
+local stateLabels = {
+    BUY_TALON             = "BUYING DRAGON TALON",
+    FARM_MASTERY          = "FARM DRAGON TALON MASTERY",
+    FARM_DOJOTRAINER      = "FARM DOJO BELT",
+    DOJO_WHITE            = "DOJO BELT: WHITE",
+    DOJO_PURPLE           = "DOJO BELT: PURPLE",
+    DOJO_YELLOW           = "DOJO BELT: YELLOW",
+    DOJO_GREEN            = "DOJO BELT: GREEN",
+    DOJO_RED              = "DOJO BELT: RED",
+    DOJO_BLACK            = "DOJO BELT: BLACK",
+}
+
+local stateImages = {
+    BUY_TALON             = "rbxassetid://102272645527842",
+    FARM_MASTERY          = "rbxassetid://102272645527842",
+    FARM_DOJOTRAINER      = "rbxassetid://115220711272647",
+    DOJO_WHITE            = "rbxassetid://115220711272647",
+    DOJO_PURPLE           = "rbxassetid://115220711272647",
+    DOJO_YELLOW           = "rbxassetid://115220711272647",
+    DOJO_GREEN            = "rbxassetid://115220711272647",
+    DOJO_RED              = "rbxassetid://115220711272647",
+    DOJO_BLACK            = "rbxassetid://115220711272647",
+}
+
+do
+    local dragging, dragStart, startPos
+    Panel.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging  = true
+            dragStart = inp.Position
+            startPos  = Wrapper.Position
+        end
+    end)
+    Panel.InputChanged:Connect(function(inp)
+        if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = inp.Position - dragStart
+            Wrapper.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    Panel.InputEnded:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+end
+
+local _pulseActive = false
+local _pulseThread = nil
+
+local function updateStatus(extraText, state)
+    state = state or "FARM_MASTERY"
+    pcall(function()
+        local color = stateColors[state] or Color3.fromRGB(139, 92, 246)
+        local label = stateLabels[state] or tostring(state)
+        local img   = stateImages[state] or ""
+
+        StateLabel.Text = label
+        ExtraLabel.Text = extraText and extraText:gsub("^%s+", "") or ""
+        ItemImage.Image = img
+        
+        -- Cố gắng thay đổi màu sắc của viền/ảnh theo loại đai
+        ItemImage.ImageColor3 = color
+        ImgStroke.Color = color
+
+        BorderStroke.Color         = color
+        BorderStroke.Transparency  = 0.3
+        AccentBar.BackgroundColor3 = color
+
+        _pulseActive = false
+        if _pulseThread then
+            pcall(function() task.cancel(_pulseThread) end)
+            _pulseThread = nil
+        end
+
+        AccentBar.BackgroundTransparency = 0
+        _pulseActive = true
+        _pulseThread = task.spawn(function()
+            while _pulseActive do
+                local tweenA, tweenB
+                local ok = pcall(function()
+                    tweenA = TweenService:Create(AccentBar,
+                        TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+                        { BackgroundTransparency = 0.55 })
+                    tweenA:Play()
+                    task.wait(1.2)
+
+                    if not _pulseActive then
+                        pcall(function() tweenA:Cancel() end)
+                        return
+                    end
+
+                    tweenB = TweenService:Create(AccentBar,
+                        TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+                        { BackgroundTransparency = 0 })
+                    tweenB:Play()
+                    task.wait(1.2)
+                end)
+
+                if not _pulseActive then
+                    pcall(function() if tweenA then tweenA:Cancel() end end)
+                    pcall(function() if tweenB then tweenB:Cancel() end end)
+                    break
+                end
+                if not ok then break end
+            end
+        end)
+    end)
+    print("[DRACO] " .. tostring(state) .. (extraText and (" | " .. extraText:gsub("\n", " ")) or ""))
+end
+
+-- Tự động nhận lại Quest nếu lỡ chết (Quest bị hủy khi chết)
+local function onCharacterAdded(char)
+    task.spawn(function()
+        local hum = char:WaitForChild("Humanoid", 10)
+        if hum then
+            hum.Died:Connect(function()
+                if cachedBelt == "Green" then
+                    cachedBelt = nil
+                    killCounter = 0
+                end
+            end)
+        end
+    end)
+end
+lp.CharacterAdded:Connect(onCharacterAdded)
+if lp.Character then onCharacterAdded(lp.Character) end
+
+-- ==========================================
+-- QUẢN LÝ QUÁI & ĐAI
+-- ==========================================
+-- ============================================================
+--  UTILITIES
+-- ============================================================
+local function calcpos(a, b)
+    if not a then return math.huge end
+    b = b or (lp.Character and lp.Character.PrimaryPart and lp.Character.PrimaryPart.CFrame) or CFrame.new(0, 0, 0)
+    return (Vector3.new(a.X, 0, a.Z) - Vector3.new(b.X, 0, b.Z)).Magnitude
+end
+
+local function checkMastery(itemName)
+    local mastery = 0
+    pcall(function()
+        local char = lp.Character
+        if char and char:FindFirstChild(itemName) then
+            mastery = char[itemName].Level.Value
+            return
+        end
+        if lp.Backpack:FindFirstChild(itemName) then
+            mastery = lp.Backpack[itemName].Level.Value
+        end
+    end)
+    return mastery
+end
+
+local function EquipWeapon(w)
+    pcall(function()
+        for _,v in pairs(lp.Backpack:GetChildren()) do
+            if v.ToolTip == w or v.Name == w then
+                lp.Character.Humanoid:EquipTool(v) 
+            end
+        end
+    end)
+end
+
+local CurTween = nil
+_G.shouldTween = false
+
+local function getCDKBlock()
+    local block = workspace:FindFirstChild("getCDKBlock_Cyborg")
+    if not block then
+        block = Instance.new("Part", workspace)
+        block.Name = "getCDKBlock_Cyborg"
+        block.Size = Vector3.new(1, 1, 1)
+        block.Anchored = true
+        block.CanCollide = false
+        block.CanTouch = false
+        block.Transparency = 1
+    end
+    return block
+end
+
+task.spawn(function()
+    while task.wait() do
+        pcall(function()
+            if _G.shouldTween then
+                if getCDKBlock() and getCDKBlock().Parent == workspace then
+                    local e = lp.Character and lp.Character.PrimaryPart
+                    if e and (e.Position - getCDKBlock().Position).Magnitude <= 200 then
+                        e.CFrame = getCDKBlock().CFrame
+                    else
+                        getCDKBlock().CFrame = e.CFrame
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+local isHopping = false
+local function HopServer()
+    if isHopping then return end
+    isHopping = true
+    
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local player = game.Players.LocalPlayer
+    local PlaceId = game.PlaceId
+    local JobId = game.JobId
+
+    task.spawn(function()
+        pcall(function()
+            updateStatus("Đang tìm server mới để nhảy...", "DOJO_PURPLE")
+            local sortOrder = math.random() > 0.5 and "Asc" or "Desc"
+            local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=" .. sortOrder .. "&limit=100"
+            
+            local success, result = pcall(function() return HttpService:JSONDecode(game:HttpGet(url)) end)
+            
+            if success and result and result.data then
+                local availableServers = {}
+                for _, server in pairs(result.data) do
+                    if type(server) == "table" and server.id and server.id ~= JobId and server.playing and server.playing < (server.maxPlayers - 2) then
+                        table.insert(availableServers, server.id)
+                    end
+                end
+                
+                if #availableServers > 0 then
+                    task.wait(math.random(1, 3))
+                    local randomJobId = availableServers[math.random(1, #availableServers)]
+                    updateStatus("✅ Tìm thấy Server, đang dịch chuyển...", "DOJO_PURPLE")
+                    
+                    pcall(function() ReplicatedStorage:WaitForChild("__ServerBrowser"):InvokeServer("teleport", randomJobId) end)
+                    task.wait(2)
+                    pcall(function() TeleportService:TeleportToPlaceInstance(PlaceId, randomJobId, player) end)
+                else
+                    isHopping = false
+                    task.wait(math.random(3, 5))
+                    HopServer()
+                end
+            else
+                isHopping = false
+                task.wait(math.random(5, 10))
+                HopServer()
+            end
+        end)
+    end)
+end
+
+pcall(function()
+    game:GetService("TeleportService").TeleportInitFailed:Connect(function()
+        isHopping = false
+        task.wait(3)
+        HopServer()
+    end)
+end)
+
+local function TP1(pos)
+    if not pos then return end
+    local e = lp.Character
+    if not e or not e:FindFirstChild("HumanoidRootPart") then return end
+    local HRP = e.HumanoidRootPart
+    local target = typeof(pos) == "CFrame" and pos or CFrame.new(pos)
+
+    _G.shouldTween = true
+
+    if HRP.Anchored then
+        HRP.Anchored = false
+        task.wait()
+    end
+
+    local dist = (target.Position - HRP.Position).Magnitude
+    if dist < 5 then return end
+    local speed = dist <= 90 and 900 or 350
+    local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
+    
+    if (getCDKBlock().Position - HRP.Position).Magnitude > 200 then
+        getCDKBlock().CFrame = HRP.CFrame
+    end
+    if CurTween then pcall(function() CurTween:Cancel(); CurTween = nil end) end
+    CurTween = TweenService:Create(getCDKBlock(), info, { CFrame = target })
+
+    if e:FindFirstChildOfClass("Humanoid") and e.Humanoid.Sit == true then
+        getCDKBlock().CFrame = CFrame.new(getCDKBlock().Position.X, target.Y, getCDKBlock().Position.Z)
+    end
+
+    CurTween:Play()
+    task.spawn(function()
+        while CurTween and CurTween.PlaybackState == Enum.PlaybackState.Playing do
+            if not _G.shouldTween then
+                pcall(function() CurTween:Cancel() end)
+                break
+            end
+            task.wait(.1)
+        end
+    end)
+    return true
+end
+
+-- ============================================================
+--  BRING MOB & FAST ATTACK (MULTI-TARGET)
+-- ============================================================
+local function getMainPart(target)
+    if not target then return nil end
+    return target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Core") or target:FindFirstChild("Head") or target:FindFirstChild("Torso") or target.PrimaryPart
+end
+
+local function BringMob(targetMob)
+    local main = getMainPart(targetMob)
+    if not main then return end
+    local posMon = main.CFrame
+    local count = 0
+    pcall(function() sethiddenproperty(lp, "SimulationRadius", math.huge) end)
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name == targetMob.Name and v ~= targetMob then
+            local hum = v:FindFirstChild("Humanoid")
+            local pp = v:FindFirstChild("HumanoidRootPart")
+            if hum and pp and hum.Health > 0 then
+                if (pp.Position - posMon.Position).Magnitude <= 350 then
+                    count = count + 1
+                    if count >= 6 then break end
+                    pcall(function()
+                        pp.CanCollide = false
+                        hum.WalkSpeed = 0
+                        hum.JumpPower = 0
+                        if hum:FindFirstChild("Animator") then hum.Animator:Destroy() end
+                        pp.CFrame = posMon
+                        pp.AssemblyLinearVelocity = Vector3.zero
+                        pp.AssemblyAngularVelocity = Vector3.zero
+                    end)
+                end
+            end
+        end
+    end
+end
+
+local Net = rs:WaitForChild("Modules"):WaitForChild("Net")
+
+local AttackRemoteTarget
+local AttackRemoteId
+
+local function InitializeHitRegistration()
+    local foldersToCheck = {
+        rs:FindFirstChild("Util"),
+        rs:FindFirstChild("Common"),
+        rs:FindFirstChild("Remotes"),
+        rs:FindFirstChild("Assets"),
+        rs:FindFirstChild("FX")
+    }
+
+    for _, folder in ipairs(foldersToCheck) do
+        if folder then
+            for _, child in ipairs(folder:GetChildren()) do
+                if child:IsA("RemoteEvent") and child:GetAttribute("Id") then
+                    AttackRemoteTarget = child
+                    AttackRemoteId = child:GetAttribute("Id")
+                end
+            end
+            folder.ChildAdded:Connect(function(child)
+                if child:IsA("RemoteEvent") and child:GetAttribute("Id") then
+                    AttackRemoteTarget = child
+                    AttackRemoteId = child:GetAttribute("Id")
+                end
+            end)
+        end
+    end
+end
+InitializeHitRegistration()
+
+_G.FastAttackOn = true
+task.spawn(function()
+    while task.wait(0.05) do
+        pcall(function()
+            if not _G.FastAttackOn then return end
+            local char = lp.Character
+            if not char then return end
+            
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local tool = char:FindFirstChildOfClass("Tool")
+            if not hrp or not tool then return end
+            
+            local hitTargets = {}
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                local targetHrp = v:FindFirstChild("HumanoidRootPart")
+                local targetHum = v:FindFirstChild("Humanoid")
+                if targetHum and targetHrp and targetHum.Health > 0 then
+                    if (targetHrp.Position - hrp.Position).Magnitude <= 60 then
+                        for _, child in ipairs(v:GetChildren()) do
+                            if child:IsA("BasePart") then
+                                table.insert(hitTargets, {v, child})
+                            end
+                        end
+                    end
+                end
+            end
+            
+            if #hitTargets > 0 then
+                local seed = rs.Modules.Net.seed:InvokeServer()
+                local attackRemote = Net["RE/RegisterAttack"]
+                local hitRemote = Net["RE/RegisterHit"]
+                
+                attackRemote:FireServer()
+                
+                local targetHead = hitTargets[1][1]:FindFirstChild("Head") or hitTargets[1][1]:FindFirstChild("HumanoidRootPart")
+                if not targetHead then return end
+                
+                hitRemote:FireServer(targetHead, hitTargets, {})
+                
+                if AttackRemoteTarget and AttackRemoteId then
+                    local remoteCode = "RE/RegisterHit"
+                    local encryptionKey = math.floor(workspace:GetServerTimeNow() / 10 % 10) + 1
+                    
+                    local encodedString = string.gsub(remoteCode, ".", function(charStr)
+                        return string.char(bit32.bxor(string.byte(charStr), encryptionKey))
+                    end)
+                    
+                    local finalId = bit32.bxor(AttackRemoteId + 909090, seed * 2)
+                    
+                    if cloneref then
+                        cloneref(AttackRemoteTarget):FireServer(encodedString, finalId, targetHead, hitTargets)
+                    else
+                        AttackRemoteTarget:FireServer(encodedString, finalId, targetHead, hitTargets)
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+local VIM = game:GetService("VirtualInputManager")
+local function FireSkill(keyCode)
+    pcall(function()
+        VIM:SendKeyEvent(true, keyCode, false, game)
+        task.wait(0.05)
+        VIM:SendKeyEvent(false, keyCode, false, game)
+    end)
+end
+
+-- ============================================================
+--  DRAGON TALON PURCHASE
+-- ============================================================
+local function hasDragonTalon()
+    return lp.Backpack:FindFirstChild("Dragon Talon") or (lp.Character and lp.Character:FindFirstChild("Dragon Talon"))
+end
+
+local function findNPC(name)
+    local npc = workspace.NPCs:FindFirstChild(name)
+    if not npc then npc = rs.NPCs:FindFirstChild(name) end
+    return npc
+end
+
+local function tpToNPC(npcName)
+    local npc = findNPC(npcName)
+    if npc and npc:FindFirstChild("HumanoidRootPart") then
+        local targetPos = CFrame.new(npc.HumanoidRootPart.Position)
+        while true do
+            local char = lp.Character or lp.CharacterAdded:Wait()
+            local hrp  = char:WaitForChild("HumanoidRootPart")
+            local hum  = char:WaitForChild("Humanoid")
+            if hum.Health <= 0 then
+                char = lp.CharacterAdded:Wait()
+                hrp  = char:WaitForChild("HumanoidRootPart")
+                hum  = char:WaitForChild("Humanoid")
+                task.wait(1)
+            end
+            
+            TP1(targetPos)
+            
+            local reached = false
+            local stuckTime = 0
+            local lastPos = hrp.Position
+            
+            while task.wait(0.1) do
+                if not char or hum.Health <= 0 then break end
+                if (hrp.Position - npc.HumanoidRootPart.Position).Magnitude <= 10 then
+                    reached = true
+                    break
+                end
+                if (hrp.Position - lastPos).Magnitude < 1 then
+                    stuckTime = stuckTime + 0.1
+                    if stuckTime >= 3 then break end
+                else
+                    stuckTime = 0
+                end
+                lastPos = hrp.Position
+            end
+            
+            if reached then return true end
+            task.wait(0.5)
+        end
+    end
+    return false
+end
+
+local function buyDragonTalonWithRetry()
+    local MAX_RETRY = 5
+    for attempt = 1, MAX_RETRY do
+        updateStatus("Đang tìm Uzoth mua Dragon Talon... (" .. attempt .. "/" .. MAX_RETRY .. ")", "BUY_TALON")
+        if tpToNPC("Uzoth") then
+            task.wait(1)
+            pcall(function()
+                rs.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+            end)
+            task.wait(3)
+        end
+        if hasDragonTalon() then
+            updateStatus("Đã mua thành công Dragon Talon!", "BUY_TALON")
+            task.wait(2)
+            return true
+        end
+    end
+    updateStatus("Không mua được Dragon Talon sau " .. MAX_RETRY .. " lần!", "BUY_TALON")
+    return false
+end
+
+-- ============================================================
+--  MAIN LOGIC
+-- ============================================================
+task.spawn(function()
+    -- 0. ĐỢI GAME LOAD BACKPACK
+    local waitCount = 0
+    while not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") do
+        task.wait(1)
+        waitCount = waitCount + 1
+        if waitCount > 10 then break end
+    end
+    task.wait(3) -- Chờ Backpack load các tool đang có
+
+    -- 1. KIỂM TRA & MUA DRAGON TALON
+    if not hasDragonTalon() then
+        local success = buyDragonTalonWithRetry()
+        if not success then return end
+    end
+
+    -- 2. FARM MASTERY (ĐẢO XƯƠNG)
+    local priority = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
+    local currentMobIndex = 1
+
+    while task.wait(0.1) do
+        local mastery = checkMastery("Dragon Talon")
+        if mastery >= 500 then
+            updateStatus("Dragon Talon đã đạt 500 Mastery!\nChuyển sang Farm Dojo Belt...", "FARM_MASTERY")
+            break
+        end
+
+        updateStatus("Cày Mastery Talon: " .. mastery .. "/500\nĐảo Xương (Haunted Castle)", "FARM_MASTERY")
+        local targetMob = nil
+        
+        -- Tìm mob theo vòng lặp 4 bãi
+        for attempt = 1, 4 do
+            local mobName = priority[currentMobIndex]
+            local mobs = {}
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                if v.Name == mobName and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                    table.insert(mobs, v)
+                end
+            end
+            if #mobs > 0 then
+                -- Sort by distance
+                table.sort(mobs, function(a, b)
+                    if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return false end
+                    local myPos = lp.Character.HumanoidRootPart.Position
+                    return (myPos - a.HumanoidRootPart.Position).Magnitude < (myPos - b.HumanoidRootPart.Position).Magnitude
+                end)
+                targetMob = mobs[1]
+                break -- Tìm thấy quái, thoát vòng lặp attempt
+            else
+                -- Không còn con nào ở bãi hiện tại -> Chuyển sang bãi kế tiếp
+                currentMobIndex = currentMobIndex + 1
+                if currentMobIndex > 4 then currentMobIndex = 1 end
+            end
+        end
+
+        if targetMob then
+            EquipWeapon("Dragon Talon")
+            BringMob(targetMob)
+            TP1(targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+            
+            -- Tự dùng skill Z và X nếu đã đủ level
+            if mastery >= 100 then FireSkill(Enum.KeyCode.Z) end
+            if mastery >= 200 then FireSkill(Enum.KeyCode.X) end
+        else
+            -- Đứng chờ nếu không có quái
+            TP1(CFrame.new(-9506, 172, 6117))
+        end
+    end
+
+    -- 3. CHẠY DOJO BELT (STANDALONE)
+    task.wait(2)
+    updateStatus("Bắt đầu chuỗi nhiệm vụ Dojo Belt...", "FARM_DOJOTRAINER")
+    
+    local function printBeltName(I)
+        if type(I) == "table" and I.Quest and I.Quest.BeltName then return I.Quest.BeltName end
+        return nil
+    end
+
+    local function getDojoBeltQuest()
+        local args = {[1] = {["NPC"] = "Dojo Trainer", ["Command"] = "RequestQuest"}}
+        local progress = nil
+        pcall(function()
+            EquipWeapon("Dragon Talon")
+            task.wait(0.5)
+            progress = rs.Modules.Net:FindFirstChild("RF/InteractDragonQuest"):InvokeServer(unpack(args))
+        end)
+        return progress, printBeltName(progress)
+    end
+
+    local function attackMobLoop(target, yOffset)
+        while target and target.Parent and target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 do
+            local char = lp.Character
+            local myHum = char and char:FindFirstChild("Humanoid")
+            if myHum and myHum.Health < myHum.MaxHealth * 0.35 then
+                updateStatus("Máu thấp! Bay lên cao hồi máu...", "FARM_DOJOTRAINER")
+                if char:FindFirstChild("HumanoidRootPart") then
+                    TP1(char.HumanoidRootPart.CFrame * CFrame.new(0, 400, 0))
+                end
+                task.wait(0.5)
+            else
+                EquipWeapon("Dragon Talon")
+                BringMob(target)
+                
+                local main = getMainPart(target)
+                if main then
+                    TP1(main.CFrame * CFrame.new(0, yOffset, 0))
+                end
+                
+                FireSkill(Enum.KeyCode.Z)
+                FireSkill(Enum.KeyCode.X)
+                
+                if target.Name:find("Sea Beast") or target.Name:find("Shark") then
+                    FireSkill(Enum.KeyCode.C)
+                    FireSkill(Enum.KeyCode.V)
+                end
+                
+                task.wait(0.1)
+            end
+        end
+    end
+
+    local function GoToSubmergedIsland()
+        local myHrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+        if not myHrp then return false end
+        if myHrp.Position.Y < -1000 then return true end
+        
+        local workerCF = CFrame.new(-16271.126, 25.5847301, 1371.98755)
+        TP1(workerCF)
+        if (myHrp.Position - workerCF.Position).Magnitude < 10 then
+            pcall(function()
+                rs.Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak"):InvokeServer("AskKilledTikiBoss")
+                task.wait(0.5)
+                rs.Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak"):InvokeServer("TravelToSubmergedIsland")
+            end)
+            task.wait(1)
+        end
+        return false
+    end
+
+    local function CheckBoat()
+        local myHrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+        for i, v in pairs(workspace.Boats:GetChildren()) do
+            if v:FindFirstChild("Owner") and tostring(v.Owner.Value) == tostring(lp.Name) then
+                local seat = v:FindFirstChild("VehicleSeat")
+                if myHrp and seat then
+                    if (seat.Position - myHrp.Position).Magnitude > 5000 and (lp.Character.Humanoid.Sit == false) then
+                        -- Thuyền quá xa và không ngồi -> Bỏ qua để hệ thống Mua thuyền mới lẹ hơn, tránh bị anti-cheat giật lùi
+                        return false
+                    end
+                end
+                return v    
+            end
+        end
+        return false
+    end
+
+    local activeBoatTweenConn = nil
+    local function TweenBoatTo(boat, targetPos)
+        if activeBoatTweenConn then return end
+        
+        -- Noclip & chống rớt
+        for _, part in pairs(boat:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+        local root = boat.PrimaryPart or boat:FindFirstChild("VehicleSeat")
+        if root then
+            local bv = root:FindFirstChild("SeaBoatBV")
+            if not bv then
+                bv = Instance.new("BodyVelocity")
+                bv.Name = "SeaBoatBV"
+                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bv.Velocity = Vector3.new(0, 0, 0)
+                bv.Parent = root
+            end
+        end
+        
+        local startCF = boat:GetPivot()
+        -- Nâng y lên xíu để thuyền lướt trên không trung cho ngầu và ko bị cản
+        local targetCF = CFrame.lookAt(startCF.Position, targetPos) - startCF.Position + targetPos
+        local dist = (startCF.Position - targetPos).Magnitude
+        local duration = math.max(0.1, dist / 350)
+        local startTime = tick()
+        
+        activeBoatTweenConn = game:GetService("RunService").Heartbeat:Connect(function()
+            if not boat or not boat.Parent or lp.Character.Humanoid.Sit == false then
+                activeBoatTweenConn:Disconnect()
+                activeBoatTweenConn = nil
+                return
+            end
+            local alpha = math.clamp((tick() - startTime) / duration, 0, 1)
+            boat:PivotTo(startCF:Lerp(targetCF, alpha))
+            if alpha >= 1 then
+                activeBoatTweenConn:Disconnect()
+                activeBoatTweenConn = nil
+            end
+        end)
+    end
+
+    local function DriveBoatToSea()
+        local myHrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+        if not myHrp then return end
+        
+        local myBoat = CheckBoat()
+        if not myBoat then
+            updateStatus("Đang mua thuyền (Guardian) tại Tiki Outpost...", "FARM_DOJOTRAINER")
+            
+            local boatDealer = nil
+            for _, v in pairs(workspace.NPCs:GetChildren()) do
+                if v.Name == "Boat Dealer" and v:FindFirstChild("HumanoidRootPart") then
+                    boatDealer = v
+                    break
+                end
+            end
+            
+            local buyBoatCFrame = boatDealer and boatDealer.HumanoidRootPart.CFrame or CFrame.new(-16927.45, 9.08, 433.86)
+            TP1(buyBoatCFrame)
+            if (buyBoatCFrame.Position - myHrp.Position).Magnitude <= 15 then 
+                pcall(function() rs.Remotes.CommF_:InvokeServer("BuyBoat", "Guardian") end)
+                task.wait(1)
+            end
+        else
+            local seat = myBoat:FindFirstChild("VehicleSeat")
+            if not seat then return end
+            
+            if lp.Character.Humanoid.Sit == false or seat.Occupant ~= lp.Character.Humanoid then
+                updateStatus("Đang leo lên thuyền...", "FARM_DOJOTRAINER")
+                local seatCF = seat.CFrame
+                if (seatCF.Position - myHrp.Position).Magnitude > 50 then
+                    TP1(seatCF * CFrame.new(0, 5, 0))
+                else
+                    _G.shouldTween = false
+                    lp.Character.Humanoid.Sit = false
+                    task.wait(0.1)
+                    myHrp.CFrame = seatCF * CFrame.new(0, 2, 0)
+                    task.wait(0.1)
+                    seat:Sit(lp.Character.Humanoid)
+                end
+            else
+                updateStatus("Đang Tween thuyền bay ra biển (Danger 6)...", "FARM_DOJOTRAINER")
+                _G.shouldTween = false -- Tắt loop TP của người chơi để không bị giật thuyền
+                
+                local targetPos = Vector3.new(-44541.76, 30, -1244.85)
+                local dist = (Vector3.new(seat.Position.X, 0, seat.Position.Z) - Vector3.new(targetPos.X, 0, targetPos.Z)).Magnitude
+                
+                if dist > 50 then
+                    TweenBoatTo(myBoat, targetPos)
+                else
+                    if activeBoatTweenConn then
+                        activeBoatTweenConn:Disconnect()
+                        activeBoatTweenConn = nil
+                    end
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+
+    local cachedBelt = nil
+    local killCounter = 0
+
+    while task.wait(0.5) do
+        if not cachedBelt then
+            updateStatus("Đang Claim/Nhận Quest Dojo Belt...", "FARM_DOJOTRAINER")
+            TP1(CFrame.new(5865.02, 1208.31, 871.15))
+            task.wait(1)
+            pcall(function()
+                EquipWeapon("Dragon Talon")
+                task.wait(0.5)
+                local net = rs.Modules.Net:FindFirstChild("RF/InteractDragonQuest")
+                if net then
+                    net:InvokeServer({["NPC"] = "Dojo Trainer", ["Command"] = "RequestQuest"})
+                    task.wait(0.5)
+                    net:InvokeServer({["NPC"] = "Dojo Trainer", ["Command"] = "ClaimQuest"})
+                end
+            end)
+            task.wait(0.5)
+            
+            local progress, NameBelt = getDojoBeltQuest()
+            if progress and NameBelt then
+                cachedBelt = NameBelt
+            end
+        else
+            local NameBelt = cachedBelt
+            
+            if NameBelt == "White" then
+            if not GoToSubmergedIsland() then
+                updateStatus("Đang di chuyển xuống Submerged Island...", "DOJO_WHITE")
+            else
+                updateStatus("Đang farm quái cấp cao (White Belt)", "DOJO_WHITE")
+                local whiteMobs = {"High Disciple", "Grand Devotee", "Ocean Prophet", "Sea Chanter"}
+                local target = nil
+                for _, name in pairs(whiteMobs) do
+                    local v = workspace.Enemies:FindFirstChild(name)
+                    if v and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        target = v
+                        break
+                    end
+                end
+                
+                if target then
+                    attackMobLoop(target, 30)
+                    killCounter = killCounter + 1
+                    if killCounter >= 35 then
+                        cachedBelt = nil
+                        killCounter = 0
+                    end
+                else
+                    TP1(CFrame.new(9638, -1993, 9615)) -- Move to mob spawn since already inside
+                end
+            end
+        elseif NameBelt == "Purple" then
+            updateStatus("Đang săn Elite Hunter", "DOJO_PURPLE")
+            local target = nil
+            local elites = {"Urban", "Deandre", "Diablo"}
+            
+            for _, folder in pairs({workspace.Enemies, rs}) do
+                for _, v in pairs(folder:GetChildren()) do
+                    for _, name in pairs(elites) do
+                        if v.Name:find(name) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+                            target = v
+                            break
+                        end
+                    end
+                    if target then break end
+                end
+                if target then break end
+            end
+
+            if target then
+                if target.Parent ~= workspace.Enemies then
+                    pcall(function() target.Parent = workspace.Enemies end)
+                end
+                if lp.Character.Humanoid.Sit == true then
+                    lp.Character.Humanoid.Sit = false
+                    task.wait(0.5)
+                end
+                attackMobLoop(target, 30)
+                cachedBelt = nil
+            else
+                local prog = rs.Remotes.CommF_:InvokeServer("EliteHunter", "Progress")
+                updateStatus("Trạng thái Elite: " .. tostring(prog) .. " (Chưa có -> Đang nhảy Server)", "DOJO_PURPLE")
+                HopServer()
+                task.wait(10)
+            end
+        elseif NameBelt == "Yellow" then
+            updateStatus("Săn Sea Beast / Terror Shark", "DOJO_YELLOW")
+            local target = nil
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                if (v.Name:find("Sea Beast") or v.Name:find("Shark") or v.Name:find("Piranha")) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                    target = v
+                    break
+                end
+            end
+            if target then
+                if lp.Character.Humanoid.Sit == true then
+                    lp.Character.Humanoid.Sit = false
+                    task.wait(0.5)
+                end
+                attackMobLoop(target, 50)
+                killCounter = killCounter + 1
+                if killCounter >= 6 then
+                    cachedBelt = nil
+                    killCounter = 0
+                end
+            else
+                DriveBoatToSea()
+            end
+            
+        elseif NameBelt == "Green" then
+            local myHrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+            local targetPos = Vector3.new(-44541.76, 30, -1244.85)
+            
+            if myHrp and (myHrp.Position - targetPos).Magnitude < 500 then
+                if activeBoatTweenConn then
+                    activeBoatTweenConn:Disconnect()
+                    activeBoatTweenConn = nil
+                end
+                
+                -- Không sút khỏi thuyền, cứ ngồi lì trên thuyền ở Y=150
+                local myBoat = CheckBoat()
+                if myBoat then
+                    for _, part in pairs(myBoat:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
+                    end
+                    local root = myBoat.PrimaryPart or myBoat:FindFirstChild("VehicleSeat")
+                    if root then
+                        local bv = root:FindFirstChild("SeaBoatBV")
+                        if not bv then
+                            bv = Instance.new("BodyVelocity")
+                            bv.Name = "SeaBoatBV"
+                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bv.Parent = root
+                        end
+                        bv.Velocity = Vector3.new(0, 0, 0)
+                    end
+                    myBoat:PivotTo(CFrame.new(targetPos.X, 150, targetPos.Z))
+                end
+                
+                updateStatus("Đang treo thuyền ở Danger 6: " .. math.floor((killCounter*5)/60) .. " / 10 Phút", "DOJO_GREEN")
+                
+                task.wait(5)
+                killCounter = killCounter + 1
+                if killCounter >= 125 then -- Đợi dư ra tí cho chắc ăn
+                    cachedBelt = nil
+                    killCounter = 0
+                end
+            else
+                if killCounter > 0 then
+                    -- Đã tới Danger 6 nhưng tự nhiên bị văng ra xa (do chết hoặc lỗi) -> Quest bị hủy, phải nhận lại
+                    cachedBelt = nil
+                    killCounter = 0
+                else
+                    DriveBoatToSea()
+                end
+            end
+            
+        elseif NameBelt == "Red" then
+            updateStatus("Săn Terrorshark (Danger 6)", "DOJO_RED")
+            local target = nil
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                if (v.Name:find("TerrorShark") or v.Name:find("Terrorshark")) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                    target = v
+                    break
+                end
+            end
+            if target then
+                if lp.Character.Humanoid.Sit == true then
+                    lp.Character.Humanoid.Sit = false
+                    task.wait(0.5)
+                end
+                attackMobLoop(target, 50)
+                cachedBelt = nil
+            else
+                DriveBoatToSea()
+            end
+            
+        elseif NameBelt == "Black" then
+            updateStatus("Săn Đảo Tiền Sử (Prehistoric Island)", "DOJO_BLACK")
+            local prehisIsland = workspace.Map:FindFirstChild("PrehistoricIsland") or workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("Locations") and workspace._WorldOrigin.Locations:FindFirstChild("Prehistoric Island")
+            
+            if prehisIsland then
+                local target = nil
+                for _, v in pairs(workspace.Enemies:GetChildren()) do
+                    if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        if (v.HumanoidRootPart.Position - prehisIsland:GetModelCFrame().Position).Magnitude < 1000 then
+                            target = v
+                            break
+                        end
+                    end
+                end
+                
+                if target then
+                    attackMobLoop(target, 30)
+                    killCounter = killCounter + 1
+                    if killCounter >= 15 then
+                        cachedBelt = nil
+                        killCounter = 0
+                    end
+                else
+                    TP1(prehisIsland:GetModelCFrame() * CFrame.new(0, 100, 0))
+                end
+            else
+                DriveBoatToSea()
+            end
+            
+        elseif NameBelt == "Orange" or NameBelt == "Blue" then
+            local action = NameBelt == "Orange" and "Trade với người chơi khác 1 lần" or "Nhờ ai vứt 1 trái ác quỷ, nhặt rồi vứt lại"
+            updateStatus("[TỰ LÀM THỦ CÔNG]\nĐai " .. NameBelt .. ": " .. action .. " để qua ải!", "FARM_DOJOTRAINER")
+            task.wait(5)
+            killCounter = killCounter + 1
+            if killCounter >= 12 then
+                TP1(CFrame.new(5865.02, 1208.31, 871.15))
+                task.wait(1)
+                pcall(function()
+                    EquipWeapon("Dragon Talon")
+                    task.wait(0.5)
+                    rs.Modules.Net:FindFirstChild("RF/InteractDragonQuest"):InvokeServer({[1] = {["NPC"] = "Dojo Trainer", ["Command"] = "ClaimQuest"}})
+                end)
+                cachedBelt = nil
+                killCounter = 0
+            end
+        end
+        end
+    end
+end)
