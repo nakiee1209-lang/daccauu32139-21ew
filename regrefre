@@ -1010,15 +1010,24 @@ task.spawn(function()
                 updateStatus("Đang Tween thuyền bay ra biển (Danger 6)...", "FARM_DOJOTRAINER")
                 _G.shouldTween = false -- Tắt loop TP của người chơi để không bị giật thuyền
                 
-                local targetPos = Vector3.new(-44541.76, 30, -1244.85)
+                local sea6Nodes = {
+                    Vector3.new(-44541.76, 30, -1244.85),
+                    Vector3.new(-44541.76, 30, 3000.00),
+                    Vector3.new(-38000.00, 30, 3000.00),
+                    Vector3.new(-38000.00, 30, -1244.85)
+                }
+                if not _G.CurrentSeaNode then _G.CurrentSeaNode = 1 end
+                
+                local targetPos = sea6Nodes[_G.CurrentSeaNode]
                 local dist = (Vector3.new(seat.Position.X, 0, seat.Position.Z) - Vector3.new(targetPos.X, 0, targetPos.Z)).Magnitude
                 
                 if dist > 50 then
+                    updateStatus("Dang li thuy?n tu?n tra (Danger 6) d? tm s? ki?n... Node: " .. _G.CurrentSeaNode, "FARM_DOJOTRAINER")
                     TweenBoatTo(myBoat, targetPos)
                 else
-                    if activeBoatTweenConn then
-                        activeBoatTweenConn:Disconnect()
-                        activeBoatTweenConn = nil
+                    _G.CurrentSeaNode = _G.CurrentSeaNode + 1
+                    if _G.CurrentSeaNode > #sea6Nodes then
+                        _G.CurrentSeaNode = 1
                     end
                 end
             end
