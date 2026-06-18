@@ -1,0 +1,336 @@
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+while not LP do
+    task.wait(0.1)
+    LP = Players.LocalPlayer
+end
+
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local GuiService = game:GetService("GuiService")
+local VIM = game:GetService("VirtualInputManager")
+
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
+local TradeFunction = Remotes:WaitForChild("TradeFunction", 9e9)
+local CommF = Remotes:WaitForChild("CommF_", 9e9)
+
+local Config = {
+    Phe = "Pirates", 
+    DelayNemTrai = 1.2, 
+    TocDoBay = 250, 
+    DojoTrainerPos = Vector3.new(5866.1, 1208.6, 870.3), 
+    DanhSachTrai = {
+        "Rocket-Rocket", "Spin-Spin", "Blade-Blade", "Chop-Chop", "Spring-Spring", 
+        "Bomb-Bomb", "Smoke-Smoke", "Spike-Spike", "Flame-Flame", "Falcon-Falcon", 
+        "Ice-Ice", "Sand-Sand", "Dark-Dark", "Eagle-Eagle", "Diamond-Diamond", 
+        "Light-Light", "Rubber-Rubber", "Barrier-Barrier", "Ghost-Ghost", "Magma-Magma", 
+        "Quake-Quake", "Buddha-Buddha", "Love-Love", "Creation-Creation", 
+        "Spider-Spider", "Sound-Sound", "Phoenix-Phoenix", "Portal-Portal", 
+        "Lightning-Lightning", "Rumble-Rumble", "Pain-Pain", "Blizzard-Blizzard", 
+        "Gravity-Gravity", "Mammoth-Mammoth", "T-Rex-T-Rex", "Dough-Dough", 
+        "Shadow-Shadow", "Venom-Venom", "Control-Control", "Gas-Gas", "Spirit-Spirit", 
+        "Yeti-Yeti", "Leopard-Leopard", "Kitsune-Kitsune", "Dragon-Dragon"
+    },
+    Seats = {
+        Vector3.new(-12602, 338, -7545), Vector3.new(-12591, 338, -7545),
+        Vector3.new(-12602, 338, -7557), Vector3.new(-12591, 338, -7557)
+    }
+}
+
+task.spawn(function()
+    task.wait(3)
+    if LP and LP.Team == nil then
+        pcall(function() CommF:InvokeServer("SetTeam", Config.Phe) end)
+        task.wait(2) 
+    end
+end)
+
+local DangTrade = false
+local IsTweening = false 
+local ScriptTerminated = false 
+local TraiDaThu = {} 
+
+RunService.Stepped:Connect(function()
+    if IsTweening and LP and LP.Character then
+        for _, part in pairs(LP.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+end)
+
+local function TweenTo(targetPos)
+    if not LP then return end
+    local char = LP.Character or LP.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart", 5)
+    if hrp then
+        local distance = (hrp.Position - targetPos).Magnitude
+        if distance > 3 then
+            IsTweening = true 
+            local tweenInfo = TweenInfo.new(distance / Config.TocDoBay, Enum.EasingStyle.Linear)
+            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos)})
+            tween:Play()
+            tween.Completed:Wait()
+            IsTweening = false 
+        end
+    end
+end
+
+local function HopServer()
+    print("🔄 Đang tìm Server mới...")
+    pcall(function()
+        local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Desc&limit=100")).data
+        for _, server in pairs(servers) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LP)
+                task.wait(5)
+            end
+        end
+    end)
+end
+
+local function AutoInteractDojo()
+    pcall(function()
+        local net = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net")
+        local dRF = net:FindFirstChild("RF/InteractDragonQuest")
+        if dRF then
+            dRF:InvokeServer({["NPC"] = "Dojo Trainer", ["Command"] = "RequestQuest"})
+            task.wait(0.5)
+            dRF:InvokeServer({["NPC"] = "Dojo Trainer", ["Command"] = "ClaimQuest"})
+        end
+    end)
+end
+
+-- ===============================================
+-- AI CÂN BẰNG GIÁ & CHUỘT ẢO 1 NHÁT CHÍ MẠNG
+-- ===============================================
+local function GetTradeValues(tradeGui)
+    local vals = {}
+    for _, obj in pairs(tradeGui:GetDescendants()) do
+        if obj:IsA("TextLabel") and obj.Visible and string.find(obj.Text, "Value: %$") then
+            local numStr = string.match(obj.Text, "^Value: %$([%d%,]+)")
+            if numStr then
+                local val = tonumber((string.gsub(numStr, ",", "")))
+                if val then
+                    vals[math.floor(obj.AbsolutePosition.X)] = val
+                end
+            end
+        end
+    end
+    
+    local sortedX = {}
+    for x in pairs(vals) do table.insert(sortedX, x) end
+    table.sort(sortedX)
+    
+    local myVal = sortedX[1] and vals[sortedX[1]] or 0
+    local oppVal = sortedX[2] and vals[sortedX[2]] or 0
+    return myVal, oppVal
+end
+
+local function IsTradeBalanced(myVal, oppVal)
+    if myVal == 0 or oppVal == 0 then return false end
+    local maxVal = math.max(myVal, oppVal)
+    local diff = math.abs(myVal - oppVal) / maxVal
+    return diff <= 0.4
+end
+
+local function KiemTraTrangThai(tradeGui)
+    for _, v in pairs(tradeGui:GetDescendants()) do
+        if v:IsA("TextLabel") and v.Visible then
+            local text = string.lower(v.Text)
+            if string.find(text, "enough space") then return "FULL_SPACE" end
+            if v.Text == "Ready!" then return "READY" end
+        end
+    end
+    return "NONE"
+end
+
+local function isTrulyVisible(guiObj)
+    local curr = guiObj
+    while curr and curr:IsA("GuiObject") do
+        if not curr.Visible then return false end
+        curr = curr.Parent
+    end
+    return true
+end
+
+-- CHỈ BẤM 1 LẦN DUY NHẤT (Chống Double-Click tháo trái)
+local function VIM_Click(guiObj)
+    if not guiObj then return end
+    local center = guiObj.AbsolutePosition + (guiObj.AbsoluteSize / 2)
+    local inset = GuiService:GetGuiInset()
+    local x = center.X
+    local y = center.Y + inset.Y
+    
+    pcall(function()
+        VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.05)
+        VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end)
+end
+
+local function ClickDauCong(tradeGui)
+    local guiCenter = tradeGui.AbsolutePosition.X + (tradeGui.AbsoluteSize.X / 2)
+    for _, obj in pairs(tradeGui:GetDescendants()) do
+        if obj:IsA("ImageButton") and obj.AbsoluteSize.X > 50 and obj.AbsoluteSize.Y > 50 and isTrulyVisible(obj) then
+            if obj.AbsolutePosition.X < guiCenter then
+                local isFilled = false
+                for _, child in pairs(obj:GetDescendants()) do
+                    if child:IsA("TextLabel") and string.find(child.Text, "%$") then isFilled = true break end
+                end
+                if not isFilled then
+                    VIM_Click(obj)
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function ClickTraiTuUI(tradeGui)
+    for _, name in ipairs(Config.DanhSachTrai) do
+        if TraiDaThu[name] then continue end 
+        local shortName = name
+        if name == "T-Rex-T-Rex" then shortName = "T-Rex" else shortName = string.match(name, "^(.-)%-") or name end
+        
+        for _, obj in pairs(tradeGui:GetDescendants()) do
+            if obj:IsA("TextLabel") and obj.Text == shortName and isTrulyVisible(obj) then
+                local scroll = obj:FindFirstAncestorOfClass("ScrollingFrame")
+                if scroll then
+                    local btn = obj:FindFirstAncestorOfClass("TextButton") or obj:FindFirstAncestorOfClass("ImageButton")
+                    if not btn and obj.Parent then btn = obj.Parent end
+                    if btn then
+                        local targetY = btn.AbsolutePosition.Y - scroll.AbsolutePosition.Y + scroll.CanvasPosition.Y
+                        scroll.CanvasPosition = Vector2.new(0, targetY - (scroll.AbsoluteSize.Y / 2))
+                        task.wait(0.2)
+                        
+                        VIM_Click(btn)
+                        TraiDaThu[name] = true
+                        return shortName
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function ClickButtonByText(tradeGui, targetText)
+    for _, obj in pairs(tradeGui:GetDescendants()) do
+        if obj:IsA("TextLabel") and obj.Text == targetText and isTrulyVisible(obj) then
+            local btn = obj:FindFirstAncestorOfClass("TextButton") or obj:FindFirstAncestorOfClass("ImageButton")
+            if not btn and obj.Parent then btn = obj.Parent end
+            if btn then
+                VIM_Click(btn)
+                return true
+            end
+        end
+    end
+    return false
+end
+-- ===============================================
+
+task.spawn(function()
+    while task.wait(1) do
+        if ScriptTerminated then break end 
+        if not LP then continue end 
+        local char = LP.Character
+        if not DangTrade and char and char:FindFirstChild("Humanoid") and not char.Humanoid.Sit then
+            local ghe = nil
+            for _, pos in ipairs(Config.Seats) do
+                local occupied = false
+                for _, p in pairs(game.Players:GetPlayers()) do
+                    if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        if (p.Character.HumanoidRootPart.Position - pos).Magnitude < 5 then occupied = true break end
+                    end
+                end
+                if not occupied then ghe = pos break end
+            end
+            if ghe then TweenTo(ghe) end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(1) do
+        if ScriptTerminated then break end 
+        if not LP then continue end
+        local PlayerGui = LP:FindFirstChild("PlayerGui")
+        if not PlayerGui then continue end
+        local tradeGui = PlayerGui:FindFirstChild("Main") and PlayerGui.Main:FindFirstChild("Trade")
+        
+        if tradeGui and tradeGui.Visible and not DangTrade then
+            DangTrade = true
+            TraiDaThu = {} 
+            task.wait(1.5)
+            
+            local DaChotSuccess = false
+            local BiTrungTrai = false
+            local traiDaChon = 0
+            
+            for i = 1, 25 do 
+                if not tradeGui.Visible then DaChotSuccess = true break end
+                
+                local stat = KiemTraTrangThai(tradeGui)
+                if stat == "FULL_SPACE" then 
+                    BiTrungTrai = true
+                    pcall(function() TradeFunction:InvokeServer("cancel") end)
+                    ClickButtonByText(tradeGui, "Cancel")
+                    break
+                end
+                
+                local myVal, oppVal = GetTradeValues(tradeGui)
+                
+                if IsTradeBalanced(myVal, oppVal) or stat == "READY" then
+                    print("✅ Khớp giá thành công! Đang dập Accept...")
+                    pcall(function() TradeFunction:InvokeServer("accept") end)
+                    ClickButtonByText(tradeGui, "Accept")
+                    task.wait(2)
+                    if not tradeGui.Visible then DaChotSuccess = true break end
+                else
+                    if traiDaChon < 4 and (myVal == 0 or myVal < oppVal) then
+                        print("🔍 Đang ấn [+] để lấy slot trống...")
+                        ClickDauCong(tradeGui)
+                        task.wait(0.8) 
+                        
+                        local addedFruit = ClickTraiTuUI(tradeGui)
+                        
+                        if not addedFruit then
+                            print("❌ Không còn trái nào có thể ném! Chờ đối tác...")
+                            task.wait(1.5)
+                        else
+                            print("🖱️ Đã thêm trái: " .. addedFruit)
+                            traiDaChon = traiDaChon + 1
+                            task.wait(Config.DelayNemTrai)
+                        end
+                    else
+                        print(string.format("⏳ Đợi bên kia ném thêm trái bù tiền... (Mình: $%d - Nó: $%d)", myVal, oppVal))
+                        task.wait(1.5)
+                    end
+                end
+            end
+            
+            if DaChotSuccess then
+                print("🎉 Quất xong Trade! Về trả Quest Dojo...")
+                TweenTo(Config.DojoTrainerPos)
+                AutoInteractDojo() 
+                print("🏁 Trả Quest xong! Chuẩn bị nhảy Server...")
+                task.wait(2)
+                HopServer()
+                ScriptTerminated = true 
+                return 
+            elseif tradeGui and tradeGui.Visible and not BiTrungTrai then
+                pcall(function() TradeFunction:InvokeServer("cancel") end)
+                ClickButtonByText(tradeGui, "Cancel")
+            end
+            
+            task.wait(2)
+            DangTrade = false
+        end
+    end
+end)
+
+print("⚖️ [V30] CHỐNG BẤM ĐÚP ĐÃ BẬT! Giao dịch ổn định 100%!")
