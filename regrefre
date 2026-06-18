@@ -877,15 +877,18 @@ task.spawn(function()
                     TP1(main.CFrame * CFrame.new(0, yOffset, 0))
                 end
                 
-                FireSkill(Enum.KeyCode.Z)
-                FireSkill(Enum.KeyCode.X)
-                
-                if target.Name:find("Sea Beast") or target.Name:find("Shark") then
+                if not (target.Name:find("TerrorShark") or target.Name:find("Terrorshark")) then
+                    FireSkill(Enum.KeyCode.Z)
+                    FireSkill(Enum.KeyCode.X)
                     FireSkill(Enum.KeyCode.C)
                     FireSkill(Enum.KeyCode.V)
                 end
                 
-                task.wait(0.1)
+                -- Fast M1 Click (như lúc farm bone)
+                vu:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                vu:ClickButton1(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                
+                task.wait()
             end
         end
     end
